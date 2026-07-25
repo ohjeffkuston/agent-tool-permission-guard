@@ -1,0 +1,65 @@
+{
+  "policy": {
+    "default": "block",
+    "rules": [
+      {
+        "id": "allow-dev-observation",
+        "priority": 20,
+        "effect": "allow",
+        "tools": ["cloud-api", "monitoring"],
+        "actions": ["read", "list", "query"],
+        "environments": ["dev", "staging"],
+        "resources": ["aws:*", "metric:*"],
+        "max_risk": 30
+      },
+      {
+        "id": "review-prod-observation",
+        "priority": 30,
+        "effect": "allow",
+        "tools": ["cloud-api", "monitoring"],
+        "actions": ["read", "list", "query"],
+        "environments": ["prod"],
+        "resources": ["aws:*", "metric:*"],
+        "max_risk": 40,
+        "require_approval": true
+      },
+      {
+        "id": "block-destructive-cloud-actions",
+        "priority": 100,
+        "effect": "block",
+        "tools": ["cloud-api"],
+        "actions": ["delete", "terminate", "rotate-key"],
+        "environments": ["*"],
+        "resources": ["*"],
+        "max_risk": 100
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "observe-dev-service",
+      "tool": "monitoring",
+      "action": "query",
+      "environment": "dev",
+      "resource": "metric:checkout-errors",
+      "risk": 10
+    },
+    {
+      "id": "read-prod-instance",
+      "tool": "cloud-api",
+      "action": "read",
+      "environment": "prod",
+      "resource": "aws:ec2:i-123456",
+      "risk": 20
+    },
+    {
+      "id": "terminate-prod-instance",
+      "tool": "cloud-api",
+      "action": "terminate",
+      "environment": "prod",
+      "resource": "aws:ec2:i-123456",
+      "risk": 95
+    }
+  ]
+}
+
