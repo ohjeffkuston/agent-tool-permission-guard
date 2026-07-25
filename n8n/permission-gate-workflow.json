@@ -1,0 +1,81 @@
+{
+  "name": "Agent Tool Permission Guard",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-tool-permission-check",
+        "responseMode": "lastNode"
+      },
+      "id": "webhook",
+      "name": "Proposed Tool Plan",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "command": "printf '%s' '{{ JSON.stringify($json.body) }}' > /tmp/tool-plan.json && agent-tool-permission-guard /tmp/tool-plan.json --compact"
+      },
+      "id": "evaluate",
+      "name": "Offline Policy Evaluation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ JSON.parse($json.stdout).decision }}",
+              "rightValue": "ALLOW",
+              "operator": {"type": "string", "operation": "equals"}
+            }
+          ]
+        }
+      },
+      "id": "gate",
+      "name": "Authorization Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { authorized: true, report: JSON.parse($json.stdout) } }}"
+      },
+      "id": "allow",
+      "name": "Authorized Plan",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1040, 220]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { authorized: false, human_review_required: true, report: JSON.parse($json.stdout) } }}"
+      },
+      "id": "review",
+      "name": "Stop for Human Review",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1040, 380]
+    }
+  ],
+  "connections": {
+    "Proposed Tool Plan": {"main": [[{"node": "Offline Policy Evaluation", "type": "main", "index": 0}]]},
+    "Offline Policy Evaluation": {"main": [[{"node": "Authorization Gate", "type": "main", "index": 0}]]},
+    "Authorization Gate": {
+      "main": [
+        [{"node": "Authorized Plan", "type": "main", "index": 0}],
+        [{"node": "Stop for Human Review", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "d4238d60-d71e-4f53-bcf4-48288c6f6d4e"
+}
+
